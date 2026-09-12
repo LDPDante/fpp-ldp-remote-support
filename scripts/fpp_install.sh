@@ -1,6 +1,7 @@
 #!/bin/bash
 # Runs as ROOT after FPP clones the plugin. Do NOT use sudo. Idempotent.
 set +e
+export PATH="/usr/sbin:/sbin:/usr/bin:/bin:$PATH"
 . ${FPPDIR}/scripts/common 2>/dev/null
 
 PLUGIN_NAME="fpp-ldp-remote-support"
@@ -11,6 +12,11 @@ echo "$(date) fpp_install: starting" >> "$LOG"
 
 # Ensure our scripts are executable regardless of how they arrived.
 chmod +x "${PLUGIN_DIR}"/scripts/*.sh "${PLUGIN_DIR}"/commands/*.sh 2>/dev/null
+
+# Prefer an internet-capable default route BEFORE downloading Tailscale, so the
+# install works on a dual-homed controller (self-heals a dead prop-net gateway).
+. "${PLUGIN_DIR}/scripts/ldp_lib.sh"
+ldp_prefer_internet_route
 
 # --- Install Tailscale (official installer auto-detects Pi/BeagleBone + OS) ---
 if ! command -v tailscale >/dev/null 2>&1; then
