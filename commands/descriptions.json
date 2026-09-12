@@ -1,0 +1,3 @@
+[
+  { "name": "LDP Remote Apply", "script": "apply.sh", "args": [] }
+]

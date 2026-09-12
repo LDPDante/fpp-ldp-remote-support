@@ -1,0 +1,14 @@
+{
+    "repoName": "fpp-ldp-remote-support",
+    "name": "LDP Remote Support",
+    "author": "L Designs Plus (Dante Ludovici)",
+    "description": "Secure remote support access for L Designs Plus Ready-to-Run controllers. When enabled, this controller connects to the private L Designs Plus support network over Tailscale so LDP can help set it up and troubleshoot remotely. Can be turned off on this page at any time.",
+    "homeURL": "https://github.com/LDPDante/fpp-ldp-remote-support",
+    "srcURL": "https://github.com/LDPDante/fpp-ldp-remote-support.git",
+    "bugURL": "https://github.com/LDPDante/fpp-ldp-remote-support/issues",
+    "allowUpdates": 1,
+    "versions": [
+        { "minFPPVersion": "9.0",  "maxFPPVersion": "9.99", "branch": "main", "sha": "" },
+        { "minFPPVersion": "10.0", "maxFPPVersion": "0",    "branch": "main", "sha": "" }
+    ]
+}

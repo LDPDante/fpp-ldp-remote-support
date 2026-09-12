@@ -1,0 +1,8 @@
+# This plugin runs on Linux (FPP). Force LF on every file so shell scripts
+# never get CRLF line endings (which break bash with /bin/bash^M errors),
+# regardless of the OS it's authored/cloned on.
+* text eol=lf
+*.sh text eol=lf
+*.php text eol=lf
+*.json text eol=lf
+*.inc text eol=lf
