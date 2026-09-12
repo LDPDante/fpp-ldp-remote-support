@@ -65,5 +65,31 @@ ldp_up() {
 
 ldp_down() { ldp_log "disconnecting"; $TS down >>"$PLUGIN_LOG" 2>&1; }
 
-# Make Tailscale match the on/off setting.
-ldp_apply() { if ldp_enabled; then ldp_up; else ldp_down; fi; }
+# If there are multiple default routes, prefer the one that actually reaches the
+# internet, and deprioritize any that don't (e.g. a prop network whose router
+# advertises itself as a gateway but has no internet). Both interfaces stay fully
+# up; only the *internet* default route is pinned. No-op on single-homed hosts.
+ldp_prefer_internet_route() {
+  local defs entry gw dev goodgw gooddev n
+  mapfile -t defs < <(ip -4 route show default 2>/dev/null \
+    | awk '{gw="";dev="";for(i=1;i<=NF;i++){if($i=="via")gw=$(i+1);if($i=="dev")dev=$(i+1)} if(gw!=""&&dev!="")print gw" "dev}' \
+    | sort -u)
+  n=${#defs[@]}
+  [ "$n" -le 1 ] && return 0
+  for entry in "${defs[@]}"; do
+    gw="${entry%% *}"; dev="${entry##* }"
+    if ping -c1 -W3 -I "$dev" 1.1.1.1 >/dev/null 2>&1; then goodgw="$gw"; gooddev="$dev"; break; fi
+  done
+  if [ -n "$gooddev" ]; then
+    ip route replace default via "$goodgw" dev "$gooddev" metric 50 2>/dev/null
+    ldp_log "route: prefer internet via $goodgw dev $gooddev ($n default routes present)"
+  else
+    ldp_log "route: $n default routes but none reached the internet"
+  fi
+}
+
+# Fix routing first, then make Tailscale match the on/off setting.
+ldp_apply() {
+  ldp_prefer_internet_route
+  if ldp_enabled; then ldp_up; else ldp_down; fi
+}
