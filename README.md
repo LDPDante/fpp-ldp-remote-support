@@ -28,10 +28,21 @@ support network so LDP can set it up and troubleshoot remotely. The customer see
    echo 'tskey-auth-XXXXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX' | sudo tee /etc/ldp/tailscale.authkey >/dev/null
    sudo chmod 600 /etc/ldp/tailscale.authkey
    ```
-2. (Optional) Add the order number so the unit is easy to find in the Tailscale console:
-   ```
-   echo '1042' | sudo tee /etc/ldp/order >/dev/null
-   ```
+2. (Optional) **Name the controller** so it's easy to identify in the Tailscale console.
+   Pick one:
+   - By **show position** (best for rentals / multi-controller shows):
+     ```
+     echo 'Driveway Left props' | sudo tee /etc/ldp/name >/dev/null
+     ```
+     → appears as `driveway-left-props`.
+   - By **order number**:
+     ```
+     echo '1042' | sudo tee /etc/ldp/order >/dev/null
+     ```
+     → appears as `ldp-1042-<serial>`.
+
+   With neither it's `ldp-<serial>`. (You can also just rename any machine in the Tailscale
+   console at any time.)
 3. **Choose the shipped default** (the runtime toggle stays selectable either way):
    - **Sales unit — opt-in (default):** do nothing. It ships OFF; the customer clicks
      "Connect to LDP Support" to connect.

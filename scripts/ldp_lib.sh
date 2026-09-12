@@ -10,6 +10,7 @@ PLUGIN_LOG="${LOGDIR}/plugin-${PLUGIN_NAME}.log"
 
 # Provisioning files written at flash time (root-only). Never committed to the repo.
 LDP_KEYFILE="/etc/ldp/tailscale.authkey"     # contains: tskey-auth-....
+LDP_NAMEFILE="/etc/ldp/name"                 # optional: human label / show position -> device name
 LDP_ORDERFILE="/etc/ldp/order"               # optional: an order number to prefix the name
 
 SETTINGS_FILE="${MEDIADIR}/config/plugin.${PLUGIN_NAME}"
@@ -31,9 +32,20 @@ ldp_serial() {
   echo "$s" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9'
 }
 
-# Tailscale device name: ldp-<order>-<serial>, or ldp-<serial> if no order file.
+# Tailscale device name, in priority order:
+#   1. /etc/ldp/name  -> a human label / show position ("Driveway Left props")
+#   2. /etc/ldp/order -> ldp-<order>-<serial>
+#   3. ldp-<serial>
 ldp_hostname() {
-  local serial order name
+  local serial order name label
+  if [ -r "$LDP_NAMEFILE" ]; then
+    label="$(cat "$LDP_NAMEFILE" 2>/dev/null)"
+    if [ -n "$label" ]; then
+      # sanitize to a DNS-safe hostname: lowercase, non-alnum -> hyphen, trim
+      name="$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-' | sed -E 's/-+/-/g; s/^-+//; s/-+$//')"
+      if [ -n "$name" ]; then echo "$name" | cut -c1-63; return; fi
+    fi
+  fi
   serial="$(ldp_serial)"; [ -z "$serial" ] && serial="unknown"
   order=""
   [ -r "$LDP_ORDERFILE" ] && order="$(tr -cd 'a-zA-Z0-9-' < "$LDP_ORDERFILE" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
