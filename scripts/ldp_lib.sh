@@ -15,7 +15,7 @@ LDP_ORDERFILE="/etc/ldp/order"               # optional: an order number to pref
 
 SETTINGS_FILE="${MEDIADIR}/config/plugin.${PLUGIN_NAME}"
 
-ldp_log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$PLUGIN_LOG" 2>/dev/null; }
+ldp_log() { { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$PLUGIN_LOG"; } 2>/dev/null; }
 
 # Hardware serial: device-tree first (Pi/BBB), then cpuinfo, then machine-id.
 ldp_serial() {
@@ -81,10 +81,14 @@ ldp_down() { ldp_log "disconnecting"; $TS down >>"$PLUGIN_LOG" 2>&1; }
 # customer "Connect" button (which runs as fpp) can enroll with it. Root-only;
 # no-op if there is no key or we aren't root.
 ldp_fix_key_perms() {
-  [ -f "$LDP_KEYFILE" ] || return 0
-  chgrp fpp /etc/ldp "$LDP_KEYFILE" 2>/dev/null
-  chmod 750 /etc/ldp 2>/dev/null
-  chmod 640 "$LDP_KEYFILE" 2>/dev/null
+  if [ -f "$LDP_KEYFILE" ]; then
+    chgrp fpp /etc/ldp "$LDP_KEYFILE" 2>/dev/null
+    chmod 750 /etc/ldp 2>/dev/null
+    chmod 640 "$LDP_KEYFILE" 2>/dev/null
+  fi
+  # the log must be writable by the fpp web user (apply.sh runs as fpp)
+  touch "$PLUGIN_LOG" 2>/dev/null
+  chown fpp:fpp "$PLUGIN_LOG" 2>/dev/null
 }
 
 # If there are multiple default routes, prefer the one that actually reaches the

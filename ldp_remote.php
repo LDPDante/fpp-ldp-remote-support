@@ -9,11 +9,11 @@ $PLUGIN_DIR = "/home/fpp/media/plugins/fpp-ldp-remote-support";
 $did = '';
 if (isset($_GET['enable'])) {
     WriteSettingToFile("RemoteSupportEnabled", "True", $pluginName);
-    @shell_exec("$PLUGIN_DIR/commands/apply.sh > /dev/null 2>&1 &");
+    @shell_exec("nohup $PLUGIN_DIR/commands/apply.sh > /dev/null 2>&1 &");
     $did = 'enable';
 } elseif (isset($_GET['disable'])) {
     WriteSettingToFile("RemoteSupportEnabled", "False", $pluginName);
-    @shell_exec("$PLUGIN_DIR/commands/apply.sh > /dev/null 2>&1 &");
+    @shell_exec("nohup $PLUGIN_DIR/commands/apply.sh > /dev/null 2>&1 &");
     $did = 'disable';
 }
 
