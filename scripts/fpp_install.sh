@@ -28,8 +28,10 @@ systemctl enable --now tailscaled >> "$LOG" 2>&1
 # (the web UI runs as 'fpp', not root).
 tailscale set --operator=fpp >> "$LOG" 2>&1 || true
 
-# --- Provisioning dir for the auth key / order number (root-only) ---
-install -d -m 0700 /etc/ldp
+# --- Provisioning dir; make the key readable by the fpp web user so the
+#     customer "Connect" button can enroll with it ---
+install -d -m 0750 /etc/ldp
+ldp_fix_key_perms
 
 # --- Shipped default state (set at flash time; toggle stays user-selectable) ---
 #   Sales units : OFF (opt-in) - the customer clicks "Connect to LDP Support".

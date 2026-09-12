@@ -77,6 +77,16 @@ ldp_up() {
 
 ldp_down() { ldp_log "disconnecting"; $TS down >>"$PLUGIN_LOG" 2>&1; }
 
+# Ensure the provisioned auth key is readable by the fpp web user, so the
+# customer "Connect" button (which runs as fpp) can enroll with it. Root-only;
+# no-op if there is no key or we aren't root.
+ldp_fix_key_perms() {
+  [ -f "$LDP_KEYFILE" ] || return 0
+  chgrp fpp /etc/ldp "$LDP_KEYFILE" 2>/dev/null
+  chmod 750 /etc/ldp 2>/dev/null
+  chmod 640 "$LDP_KEYFILE" 2>/dev/null
+}
+
 # If there are multiple default routes, prefer the one that actually reaches the
 # internet, and deprioritize any that don't (e.g. a prop network whose router
 # advertises itself as a gateway but has no internet). Both interfaces stay fully
