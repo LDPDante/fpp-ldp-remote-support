@@ -18,14 +18,26 @@ if ! command -v tailscale >/dev/null 2>&1; then
   curl -fsSL https://tailscale.com/install.sh | sh >> "$LOG" 2>&1
 fi
 systemctl enable --now tailscaled >> "$LOG" 2>&1
+# Let the FPP web user drive tailscale, so the customer's "Connect" button works
+# (the web UI runs as 'fpp', not root).
+tailscale set --operator=fpp >> "$LOG" 2>&1 || true
 
 # --- Provisioning dir for the auth key / order number (root-only) ---
 install -d -m 0700 /etc/ldp
 
-# --- Default the toggle to ON on first install ---
+# --- Shipped default state (set at flash time; toggle stays user-selectable) ---
+#   Sales units : OFF (opt-in) - the customer clicks "Connect to LDP Support".
+#   Rental units: ON so they AUTO-CONNECT on power-up. Provision it before install:
+#       echo True | sudo tee /etc/ldp/default_enabled
 SETTINGS_FILE="/home/fpp/media/config/plugin.${PLUGIN_NAME}"
+DEFAULT_ENABLED="False"
+if [ -r /etc/ldp/default_enabled ]; then
+  case "$(tr -d '[:space:]' < /etc/ldp/default_enabled | tr '[:upper:]' '[:lower:]')" in
+    true|1|on|yes) DEFAULT_ENABLED="True" ;;
+  esac
+fi
 if ! grep -q 'RemoteSupportEnabled' "$SETTINGS_FILE" 2>/dev/null; then
-  echo 'RemoteSupportEnabled = "True"' >> "$SETTINGS_FILE"
+  echo "RemoteSupportEnabled = \"$DEFAULT_ENABLED\"" >> "$SETTINGS_FILE"
   chown fpp:fpp "$SETTINGS_FILE" 2>/dev/null
 fi
 

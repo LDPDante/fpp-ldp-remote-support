@@ -32,7 +32,16 @@ support network so LDP can set it up and troubleshoot remotely. The customer see
    ```
    echo '1042' | sudo tee /etc/ldp/order >/dev/null
    ```
-3. Rotate/replace FPP's default `fpp` password before shipping.
+3. **Choose the shipped default** (the runtime toggle stays selectable either way):
+   - **Sales unit — opt-in (default):** do nothing. It ships OFF; the customer clicks
+     "Connect to LDP Support" to connect.
+   - **Rental unit — auto-connect on power-up:** provision it ON:
+     ```
+     echo True | sudo tee /etc/ldp/default_enabled >/dev/null
+     ```
+     Now it connects to your tailnet automatically every time it powers up (as long as it
+     has internet) — no click needed.
+4. Rotate/replace FPP's default `fpp` password before shipping.
 
 The key is only needed for the **first** connection; after enrollment the unit reconnects with
 its own stored node key. You may delete `/etc/ldp/tailscale.authkey` after first enrollment.
@@ -60,3 +69,26 @@ sudo /home/fpp/media/plugins/fpp-ldp-remote-support/scripts/fpp_install.sh
   ]
   ```
   Without it, the web UI (port 80) still works; SSH just won't be reachable until it's added.
+
+## Customer connect flow (opt-in)
+
+Shipped units default to **OFF** — they auto-play their show with no internet and never
+phone home. A customer opts into remote support with a plug + a click:
+
+1. Plug an Ethernet cable from their router to the controller (gives it internet).
+2. Open **`http://fpp.local/`** on the same network → **LDP Remote Support** page.
+3. Click **"Connect to LDP Support"** → the pre-provisioned key enrolls it in ~10s.
+
+**One-click link / QR:** the Connect button is just this URL —
+`http://fpp.local/plugin.php?plugin=fpp-ldp-remote-support&page=ldp_remote.php&enable=1`
+— which connects on open. Put it on the instruction card as a link or a **QR code** the
+customer scans with a phone on the same WiFi. `&disable=1` turns it back off.
+
+**Make `fpp.local` reliable:** the URL resolves via mDNS to the controller's *system*
+hostname (separate from its Tailscale name). At flash time, keep a **consistent system
+hostname** (leave the FPP default `FPP` → `fpp.local`, or set a branded one like
+`ldp-controller` → `ldp-controller.local`) so the same link works on every unit. If a
+customer has several controllers, tell them to use the IP from their router instead.
+
+**No account/app for the customer:** the auth key lives on the device, so connecting needs
+no Tailscale login, no software install — just the click.
