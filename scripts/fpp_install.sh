@@ -41,6 +41,11 @@ tailscale set --operator=fpp >> "$LOG" 2>&1 || true
 install -d -m 0750 /etc/ldp
 ldp_fix_key_perms
 
+# --- Keep a sane clock offline without an RTC battery, and apply bench
+#     provisioning (/etc/ldp/timezone, /etc/ldp/playlist) ---
+ldp_install_clock
+ldp_apply_provisioning
+
 # --- Shipped default state (set at flash time; toggle stays user-selectable) ---
 #   Sales units : OFF (opt-in) - the customer clicks "Connect to LDP Support".
 #   Rental units: ON so they AUTO-CONNECT on power-up. Provision it before install:

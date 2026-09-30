@@ -52,10 +52,24 @@ support network so LDP can set it up and troubleshoot remotely. The customer see
      ```
      Now it connects to your tailnet automatically every time it powers up (as long as it
      has internet) — no click needed.
-4. Rotate/replace FPP's default `fpp` password before shipping.
+4. **Timezone and show start** (recommended). Set the customer's timezone, and the
+   playlist to start on every power-up, so the show runs even offline with a wrong clock:
+   ```
+   echo 'America/Chicago' | sudo tee /etc/ldp/timezone >/dev/null
+   echo 'Customer Show Playlist' | sudo tee /etc/ldp/playlist >/dev/null
+   ```
+   Each is applied once, at install (or the next boot), and never overrides later changes.
+   The plugin also installs a small clock save/restore service so a unit with no RTC
+   battery still boots with a sane date (see the runbook's "show doesn't start offline").
+5. Rotate/replace FPP's default `fpp` password before shipping.
 
 The key is only needed for the **first** connection; after enrollment the unit reconnects with
-its own stored node key. You may delete `/etc/ldp/tailscale.authkey` after first enrollment.
+its own stored node key. The plugin **deletes `/etc/ldp/tailscale.authkey` automatically** once the
+unit has enrolled (right after enrolling, and again on every boot), so it can't be copied off the unit.
+
+**Tailscale console hardening (recommended):** turn on **Device Approval** (Settings -> Device
+management) so a copied key can't add rogue devices without your approval, and once every
+shipped unit has enrolled, **revoke** the shared key and issue a new one for new units.
 
 ## Install on a controller
 
@@ -72,11 +86,15 @@ sudo /home/fpp/media/plugins/fpp-ldp-remote-support/scripts/fpp_install.sh
 ## Tailscale side (one-time, in the LDP tailnet)
 
 - ACL already defines `tag:fpp` and isolates units (admin -> `tag:fpp:22,80,443`).
-- To enable **passwordless Tailscale SSH** into units (used by the `--ssh` flag), add this block
-  to the policy (Access controls -> JSON editor):
+- To enable **Tailscale SSH** into units (used by the `--ssh` flag), add this to the policy
+  (Access controls -> JSON editor). Only listed support staff get in, as `fpp` (use `sudo` for
+  root), and `check` makes them re-confirm their Tailscale login every 12h:
   ```jsonc
+  "groups": {
+    "group:ldp-support": ["you@example.com"]
+  },
   "ssh": [
-    { "action": "accept", "src": ["autogroup:member"], "dst": ["tag:fpp"], "users": ["fpp", "root"] }
+    { "action": "check", "src": ["group:ldp-support"], "dst": ["tag:fpp"], "users": ["fpp"], "checkPeriod": "12h" }
   ]
   ```
   Without it, the web UI (port 80) still works; SSH just won't be reachable until it's added.
@@ -92,8 +110,10 @@ phone home. A customer opts into remote support with a plug + a click:
 
 **One-click link / QR:** the Connect button is just this URL —
 `http://fpp.local/plugin.php?plugin=fpp-ldp-remote-support&page=ldp_remote.php&enable=1`
-— which connects on open. Put it on the instruction card as a link or a **QR code** the
-customer scans with a phone on the same WiFi. `&disable=1` turns it back off.
+— which opens the page with the Connect button ready to tap. Put it on the instruction card as
+a link or a **QR code** the customer scans with a phone on the same WiFi. Connect/Disconnect
+only take effect on a button press carrying a per-unit token, so another website can't silently
+connect the controller. `&disable=1` opens it with the Disconnect button highlighted.
 
 **Make `fpp.local` reliable:** the URL resolves via mDNS to the controller's *system*
 hostname (separate from its Tailscale name). At flash time, keep a **consistent system

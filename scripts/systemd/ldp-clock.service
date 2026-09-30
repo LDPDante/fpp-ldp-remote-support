@@ -1,0 +1,15 @@
+[Unit]
+Description=LDP: restore last-known time at boot (no RTC battery), save at shutdown
+DefaultDependencies=no
+After=local-fs.target fpprtc.service
+Before=fpp_postnetwork.service fppd.service time-sync.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/ldp-clock restore
+ExecStop=/usr/local/sbin/ldp-clock save
+
+[Install]
+WantedBy=sysinit.target

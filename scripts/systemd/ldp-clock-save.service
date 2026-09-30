@@ -1,0 +1,6 @@
+[Unit]
+Description=LDP: save the current time (clock-battery stand-in)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ldp-clock save

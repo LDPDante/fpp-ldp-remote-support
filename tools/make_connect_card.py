@@ -8,8 +8,8 @@ Usage:
     python make_connect_card.py "Chilutti 1285" "Smith 1286"   # several at once
 
 For each name it writes <hostname>-card.png in the current folder. The QR opens
-that controller's LDP Remote Support page and connects it automatically
-(?enable=1) -- the customer just scans it with a phone on the same Wi-Fi.
+that controller's LDP Remote Support page (?enable=1), where the customer taps
+"Connect to LDP Support" -- they just scan it with a phone on the same Wi-Fi.
 
 The <hostname> is derived exactly like the plugin does (lowercase, non-alnum ->
 hyphen), so it matches the unit's own name. Set the FPP system hostname to the
@@ -88,7 +88,7 @@ def make_card(unit, dark=False):
     sx = 210; sy = qy + q + pad + 70
     for i, text in enumerate(["Plug the controller into your router",
                               "Scan this code (same Wi-Fi)",
-                              "Connected \u2014 we can help remotely"], 1):
+                              "Tap Connect \u2014 we can help remotely"], 1):
         d.ellipse([sx, sy, sx + 56, sy + 56], fill=GOLD)
         nw = d.textlength(str(i), font=f_num)
         d.text((sx + 28 - nw / 2, sy + 8), str(i), font=f_num, fill=DARKNUM)

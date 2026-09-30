@@ -31,12 +31,32 @@ for root. Base64-encode multi-line scripts to avoid quoting issues.
 
 Full steps in the README. In short, drop files in `/etc/ldp/` at flash time
 (`tailscale.authkey` required; `name` = console/device name; `default_enabled=True`
-for rentals), then install via the Plugin Manager URL or `git clone` +
-`scripts/fpp_install.sh`. Print a connect card:
+for rentals; `timezone` = customer's zone, e.g. `America/Chicago`; `playlist` = show
+playlist to start on every power-up), then install via the Plugin Manager URL or
+`git clone` + `scripts/fpp_install.sh`. Print a connect card:
 
 ```
 python tools/make_connect_card.py "Chilutti 1285"
 ```
+
+---
+
+## KNOWN ISSUE — show doesn't start offline (stale clock, FPP 10)
+
+**Symptom:** the show only starts once the controller gets internet (e.g. when the
+customer connects to support). **Cause:** no working RTC battery (PiCap v2 kernel log:
+`rtc-ds1307 ... oscillator failed`), so the Pi boots with a stale date and FPP 10 logs
+`Clock appears incorrect ... delaying scheduler start until time sync`.
+
+**Fixes (the plugin does 1 and 2 automatically):**
+1. `ldp-clock` service saves the time every 10 min and restores it at boot, so the
+   date is past FPP's check. Check with `systemctl status ldp-clock ldp-clock-save.timer`.
+2. `FPPD_STARTED` command preset (from `/etc/ldp/playlist`) starts the show on every
+   power-up regardless of the clock. Confirmed working offline on chilutti-1285.
+3. Real fix: a CR2032 in the PiCap, then the RTC keeps true time.
+
+Also check the timezone (`/etc/ldp/timezone`) — chilutti-1285 shipped on New_York
+instead of Chicago.
 
 ---
 
