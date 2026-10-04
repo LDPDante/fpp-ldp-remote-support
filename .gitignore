@@ -6,3 +6,7 @@ exports/
 
 # local scratch notes
 QRCodeinstructions.txt
+
+# Tailscale auth key (secret, never commit)
+tailscale.txt
+*.authkey
