@@ -134,6 +134,37 @@ ldp_prefer_internet_route() {
   fi
 }
 
+# Get a true clock before TLS downloads. A stale clock with a plausible year (e.g.
+# the image date) still breaks TLS: today's certs aren't valid yet. So wait for an
+# actual NTP sync, not a sane-looking year. Root-only. chrony refuses big steps
+# after its first few updates, so ask it to step. If NTP is blocked, fall back to
+# the Date header of a plain-HTTP response (no TLS needed), moving forward only.
+ldp_clock_synced() {
+  # chrony knows it's synced well before the kernel flag timedatectl reads flips
+  if command -v chronyc >/dev/null 2>&1; then
+    chronyc waitsync 1 1 >/dev/null 2>&1 && return 0
+  fi
+  [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" = yes ]
+}
+ldp_sync_clock() {
+  local i d t
+  ldp_clock_synced && return 0
+  timedatectl set-ntp true 2>/dev/null
+  command -v chronyc >/dev/null 2>&1 && chronyc -a burst 4/4 >/dev/null 2>&1
+  for i in $(seq 1 15); do
+    command -v chronyc >/dev/null 2>&1 && chronyc -a makestep >/dev/null 2>&1
+    ldp_clock_synced && { ldp_log "clock: NTP synced ($(date))"; return 0; }
+    sleep 2
+  done
+  d="$(curl -sI -m5 http://www.google.com 2>/dev/null | tr -d '\r' | sed -n 's/^[Dd]ate: //p' | head -1)"
+  t="$(date -d "$d" +%s 2>/dev/null)"
+  if [ -n "$d" ] && [ -n "$t" ] && [ "$t" -gt "$(date +%s)" ]; then
+    date -s "@$t" >/dev/null && { ldp_log "clock: set from HTTP Date ($(date))"; return 0; }
+  fi
+  ldp_log "clock: not NTP-synced ($(date)); TLS downloads may fail"
+  return 1
+}
+
 # Clock-battery stand-in (see ldp_clock.sh). Root-only. Copies the script and
 # units out of the (fpp-writable) plugin dir so root never runs files fpp can edit.
 ldp_install_clock() {

@@ -18,13 +18,9 @@ chmod +x "${PLUGIN_DIR}"/scripts/*.sh "${PLUGIN_DIR}"/commands/*.sh 2>/dev/null
 . "${PLUGIN_DIR}/scripts/ldp_lib.sh"
 ldp_prefer_internet_route
 
-# A fresh controller can boot with a bogus clock (no RTC / not yet NTP-synced),
-# which breaks TLS to GitHub/Tailscale. Enable NTP and wait briefly for a sane year.
-timedatectl set-ntp true 2>/dev/null
-if [ "$(date -u +%Y)" -lt 2025 ] 2>/dev/null; then
-  echo "$(date) fpp_install: clock looks wrong, waiting for NTP sync" >> "$LOG"
-  for i in 1 2 3 4 5 6 7 8; do sleep 2; [ "$(date -u +%Y)" -ge 2025 ] 2>/dev/null && break; done
-fi
+# A fresh controller can boot with a stale clock (no RTC / not yet NTP-synced),
+# which breaks TLS to GitHub/Tailscale even when the year looks right.
+ldp_sync_clock
 
 # --- Install Tailscale (official installer auto-detects Pi/BeagleBone + OS) ---
 if ! command -v tailscale >/dev/null 2>&1; then
