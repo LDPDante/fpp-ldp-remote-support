@@ -3,3 +3,6 @@
 
 # per-customer config snapshots (customer data)
 exports/
+
+# local scratch notes
+QRCodeinstructions.txt
