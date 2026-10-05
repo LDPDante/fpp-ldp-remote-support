@@ -118,7 +118,59 @@ Notes:
 - **Back to stable later:** `git checkout v10.1` (the release branch) then
   `/opt/fpp/scripts/git_pull`.
 - Fresh controllers can boot with a **bogus clock**, which breaks TLS to GitHub —
-  set the time / enable NTP first. (`fpp_install.sh` now waits for a sane clock.)
+  set the time / enable NTP first. (`fpp_install.sh` now waits for a real NTP sync;
+  a plausible-looking year like the image date is still too old for today's certs.)
+
+---
+
+## Reaching a Falcon (or other controller) behind the Pi
+
+The Pi's Tailscale address reaches the Pi only — not the controllers on its prop
+network. Use **FPP's built-in proxy** instead; it rides on port 80, which the
+`tag:fpp` ACL already allows, so no Tailscale changes are needed.
+
+1. On the Pi: **Content Setup → Proxy Settings** → add the controller's IP (e.g.
+   `192.168.0.106`), Save. (API: `POST /api/proxies/<ip>`.)
+2. Open `http://<pi 100.x>/proxy/<controller ip>/` — keep the trailing `/`.
+
+Works fully on a Falcon F16V4 (Bld 38): pages, status, and settings/save (its UI
+builds the API URL from the page address, so calls stay on the proxy).
+Example: LDP101 → `http://100.80.226.33/proxy/192.168.0.106/`.
+
+- **Proxy only reaches the IP listed.** If the controller's IP changes, or someone
+  edits the entry (LDP101's was once overwritten with `10.50.0.1`), you get an
+  Apache **"404 Not Found"** page. Check the list: `GET /api/proxies`.
+- **Falcon V4 returns 404 for `/` to curl / scripts** — it only stores gzipped
+  pages. Browsers are fine; in scripts add `-H 'Accept-Encoding: gzip'`.
+  `/status.xml` works without it and is a quick "is it alive" check.
+- On customer units, proxy **only their light controllers** — never their router
+  or other home devices.
+
+---
+
+## Wiring: Pi straight to a Falcon, internet over WiFi (no router)
+
+Prop network on the cable, internet on WiFi. The show runs over the cable even if
+the internet drops; remote support comes and goes with the WiFi.
+
+| | Setting |
+|---|---|
+| **Pi eth0** (FPP → Network → eth0) | **Static** `192.168.0.201` / `255.255.255.0` |
+| **Pi gateway** (FPP → Network → Global Network Settings) | **blank** — so internet goes out WiFi |
+| **Pi DNS** | `1.1.1.1` / `8.8.8.8` (FPP warns if empty on a static interface) |
+| **Pi wlan0** | the site's WiFi (set *before* it leaves the bench) |
+| **Falcon wired** (Network tab) | **Enable DHCP unchecked**, `192.168.0.106` / `255.255.255.0`, gateway `0.0.0.0` |
+
+- **Both ends must be static** — with no router nothing hands out addresses, and a
+  DHCP Pi just has no eth0 IP.
+- Any normal Ethernet cable; both ends auto-detect.
+- **Bench test:** an F16V4's two Ethernet ports are an internal switch — Pi into
+  one, bench router into the other, and you can reach both from the bench while
+  Pi↔F16 traffic takes the same path it will on site.
+- Set the Falcon's IP while it's still on the bench router; once it's cabled only
+  to the Pi, the bench PC can't reach it (except via the proxy).
+- Falcon **WiFi hotspot**: turn it off unless you want a phone/laptop backdoor at
+  the site; if you keep it, don't leave its passphrase on show in screenshots.
 
 ---
 
@@ -132,6 +184,15 @@ Notes:
 - **SSH rate-limiting:** many rapid SSH connects can make sshd start refusing
   connections — fall back to the **HTTP API** (port 80), which stays reachable, or
   pace your connections.
+- **Plugin won't update** (`git pull`: "local changes to scripts/ldp_clock.sh would
+  be overwritten"): units installed before `9e8e577` show that file modified (only
+  its executable bit). Fix once over SSH as `fpp`:
+  `cd /home/fpp/media/plugins/fpp-ldp-remote-support && git checkout -- scripts/ldp_clock.sh && git pull`
+  If git says `.git/FETCH_HEAD: Permission denied`, first
+  `sudo chown fpp:fpp .git/FETCH_HEAD`.
+- **"Raspberry Pi Voltage Too Low"** (FPP warning 15): check `vcgencmd get_throttled`
+  — `0x0` is clean; `0x50005` = under-voltage and throttling *right now*. Fix the
+  supply (Pi 3B+: 5.1V/2.5A, short thick cable), then Restart FPPD to clear it.
 - **IP changes on reboot** (DHCP): find the unit by its `<name>.local` mDNS name
   (filter for the IPv4 answer, ignore link-local IPv6) or its stable Tailscale
   `100.x` address.
