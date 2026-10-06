@@ -193,6 +193,12 @@ the internet drops; remote support comes and goes with the WiFi.
 - **"Raspberry Pi Voltage Too Low"** (FPP warning 15): check `vcgencmd get_throttled`
   — `0x0` is clean; `0x50005` = under-voltage and throttling *right now*. Fix the
   supply (Pi 3B+: 5.1V/2.5A, short thick cable), then Restart FPPD to clear it.
+- **Scheduled show won't restart after a manual Stop** (FPP 10): stopping a
+  scheduled playlist ends that schedule slot. Pressing Start on the *same*
+  playlist logs `StartPlaylistAtCommand: Deferring to scheduler` and nothing
+  plays until the next slot — for an all-day schedule, that's midnight. Not a
+  broken schedule: **Restart FPPD** (or reboot) and it starts the current slot.
+  Check `fppd.log` for `Stop Now` to see when it was stopped.
 - **IP changes on reboot** (DHCP): find the unit by its `<name>.local` mDNS name
   (filter for the IPv4 answer, ignore link-local IPv6) or its stable Tailscale
   `100.x` address.
