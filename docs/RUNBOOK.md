@@ -39,6 +39,20 @@ playlist to start on every power-up), then install via the Plugin Manager URL or
 python tools/make_connect_card.py "Chilutti 1285"
 ```
 
+**Port map for setup day** — controllers only remember the *first* prop on a port;
+xLights knows the whole chain. From the show folder:
+
+```
+python tools/make_port_map.py Z:\Halloween --title "Riardos Halloween"
+python tools/make_port_map.py Z:\Halloween --controller F16v4   # one controller
+```
+
+Writes `<show>-portmap.html`: per port (and smart receiver), the props in wiring
+order with pixel counts, **start/end null pixels as their own lines** where they
+sit, color order / brightness / reversed notes, empty ports, DMX fixtures, and
+models not assigned to any controller. Self-contained, works offline — AirDrop or
+email it to your phone, or print it for the controller lid.
+
 ---
 
 ## KNOWN ISSUE — show doesn't start offline (stale clock, FPP 10)

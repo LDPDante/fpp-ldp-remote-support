@@ -10,3 +10,7 @@ QRCodeinstructions.txt
 # Tailscale auth key (secret, never commit)
 tailscale.txt
 *.authkey
+
+# generated port maps (output of tools/make_port_map.py; customer data)
+*-portmap*.html
+__pycache__/
