@@ -1,0 +1,23 @@
+/* LDP port map - shared by the plugin's Port Map page and tools/make_port_map.py */
+.ldp-pm{--pm-bg:#fff;--pm-card:#f6f5f2;--pm-ink:#1a1a1c;--pm-sub:#5f5d58;--pm-line:#dcd9d2;--pm-acc:#b8860b;--pm-empty:#a9a69f;--pm-warn:#b3261e;
+  color:var(--pm-ink);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ldp-pm.pm-auto{--pm-bg:#111214;--pm-card:#1c1d20;--pm-ink:#ecebe6;--pm-sub:#a5a39c;--pm-line:#2e2f33;--pm-acc:#e8b84b;--pm-empty:#5d5c58;--pm-warn:#ff8a80}}
+.ldp-pm *{box-sizing:border-box}
+.ldp-pm h1{font-size:22px;margin:0 0 2px}.ldp-pm h2{font-size:18px;margin:22px 0 0}
+.ldp-pm .pm-sub,.ldp-pm .pm-meta{color:var(--pm-sub);margin:2px 0 10px;font-size:13px}
+.ldp-pm .pm-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));align-items:start}
+.ldp-pm .pm-port{background:var(--pm-card);border:1px solid var(--pm-line);border-radius:10px;padding:10px 12px;break-inside:avoid}
+.ldp-pm .pm-ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ldp-pm .pm-ph b{font-size:17px;color:var(--pm-acc)}.ldp-pm .pm-ph em{font-style:normal;font-weight:600}
+.ldp-pm .pm-ph span{margin-left:auto;color:var(--pm-sub);font-size:13px}
+.ldp-pm .pm-empty{padding:6px 12px;opacity:.75}.ldp-pm .pm-empty b{color:var(--pm-empty);font-size:15px}
+.ldp-pm ol,.ldp-pm ul{list-style:none;margin:6px 0 0;padding:0}
+.ldp-pm li{display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--pm-line)}
+.ldp-pm .pm-n{min-width:20px;height:20px;border-radius:50%;background:var(--pm-acc);color:#141416;font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}
+.ldp-pm .pm-nm{flex:1;min-width:0;overflow-wrap:anywhere}.ldp-pm .pm-nm small{display:block;color:var(--pm-sub)}
+.ldp-pm .pm-px{color:var(--pm-sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ldp-pm li.pm-null .pm-n{background:none;color:var(--pm-acc);border:1.5px dashed var(--pm-acc);font-size:11px}
+.ldp-pm li.pm-null .pm-nm{font-weight:600}
+.ldp-pm .pm-warn{color:var(--pm-warn);font-size:13px}
+@media print{.ldp-pm{font-size:12px}.ldp-pm .pm-grid{grid-template-columns:repeat(3,1fr);gap:6px}.ldp-pm .pm-port{padding:6px 8px}
+  .ldp-pm section+section h2{break-before:page}}

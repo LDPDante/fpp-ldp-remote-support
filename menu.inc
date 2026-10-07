@@ -2,7 +2,8 @@
 // Registers the plugin's menu entry. FPP presets $plugin (repoName) and $menu
 // (the current menu section: status|content|output|help).
 $menuEntries = Array(
-    Array( 'text' => 'LDP Remote Support', 'type' => 'status', 'page' => 'ldp_remote.php', 'wrap' => 1 )
+    Array( 'text' => 'LDP Remote Support', 'type' => 'status', 'page' => 'ldp_remote.php', 'wrap' => 1 ),
+    Array( 'text' => 'Port Map', 'type' => 'status', 'page' => 'portmap.php', 'wrap' => 1 )
 );
 
 foreach ($menuEntries as $entry) {

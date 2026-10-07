@@ -6,10 +6,13 @@ Usage:
     python make_connect_card.py "Chilutti 1285"            # white card, black text (print-friendly, default)
     python make_connect_card.py --dark "Chilutti 1285"     # dark brand card (for screen)
     python make_connect_card.py "Chilutti 1285" "Smith 1286"   # several at once
+    python make_connect_card.py --portmap "LDP101"          # + a Port Map card (QR -> wiring page)
 
 For each name it writes <hostname>-card.png in the current folder. The QR opens
 that controller's LDP Remote Support page (?enable=1), where the customer taps
 "Connect to LDP Support" -- they just scan it with a phone on the same Wi-Fi.
+--portmap also writes <hostname>-portmap-card.png, whose QR opens the plugin's
+Port Map page full screen (push the map first: tools/make_port_map.py --push).
 
 The <hostname> is derived exactly like the plugin does (lowercase, non-alnum ->
 hyphen), so it matches the unit's own name. Set the FPP system hostname to the
@@ -47,11 +50,23 @@ def font(paths, size):
         except Exception: pass
     return ImageFont.load_default()
 
-def make_card(unit, dark=False):
+CARDS = {
+    'connect': {'page': 'ldp_remote.php&enable=1', 'word': 'Remote Support', 'h1': 'Scan to connect',
+                'steps': ["Plug the controller into your router",
+                          "Scan this code (same Wi-Fi)",
+                          "Tap Connect — we can help remotely"], 'suffix': 'card'},
+    'portmap': {'page': 'portmap.php&nopage=1', 'word': 'Port Map', 'h1': 'Scan for wiring',
+                'steps': ["Power up the controller",
+                          "Scan this code (same Wi-Fi)",
+                          "See which prop goes on which port"], 'suffix': 'portmap-card'},
+}
+
+def make_card(unit, dark=False, kind='connect'):
     c = theme(dark)
+    k = CARDS[kind]
     host = hostname(unit)
     addr = f"{host}.local"
-    url  = f"http://{addr}/plugin.php?plugin={PLUGIN}&page=ldp_remote.php&enable=1"
+    url  = f"http://{addr}/plugin.php?plugin={PLUGIN}&page={k['page']}"
 
     qr = qrcode.QRCode(error_correction=ERROR_CORRECT_M, box_size=12, border=1)
     qr.add_data(url); qr.make(fit=True)
@@ -72,8 +87,8 @@ def make_card(unit, dark=False):
 
     d.rectangle([0, 0, W, 12], fill=GOLD)
     ctr("L  D E S I G N S  P L U S", 66, f_eye, c['eye'])
-    ctr("Remote Support", 108, f_word, c['ink'])
-    ctr("Scan to connect", 235, f_h1, c['ink'])
+    ctr(k['word'], 108, f_word, c['ink'])
+    ctr(k['h1'], 235, f_h1, c['ink'])
 
     q = 600
     qimg = qimg.resize((q, q), Image.NEAREST)
@@ -86,9 +101,7 @@ def make_card(unit, dark=False):
     card.paste(qimg, (qx, qy))
 
     sx = 210; sy = qy + q + pad + 70
-    for i, text in enumerate(["Plug the controller into your router",
-                              "Scan this code (same Wi-Fi)",
-                              "Tap Connect \u2014 we can help remotely"], 1):
+    for i, text in enumerate(k['steps'], 1):
         d.ellipse([sx, sy, sx + 56, sy + 56], fill=GOLD)
         nw = d.textlength(str(i), font=f_num)
         d.text((sx + 28 - nw / 2, sy + 8), str(i), font=f_num, fill=DARKNUM)
@@ -100,21 +113,22 @@ def make_card(unit, dark=False):
     ctr("Questions?  support@dvlight.com", H - 104, f_small, c['sub'])
     d.rectangle([0, H - 12, W, H], fill=GOLD)
 
-    out = f"{host}-card.png"
+    out = f"{host}-{k['suffix']}.png"
     card.save(out)
     print(f"  wrote {out}   (QR -> {url})")
 
 def main():
     args = sys.argv[1:]
-    dark = False
-    if "--dark" in args:
-        dark = True
-        args = [a for a in args if a != "--dark"]
+    dark = "--dark" in args
+    portmap = "--portmap" in args
+    args = [a for a in args if a not in ("--dark", "--portmap")]
     if not args:
-        print('Usage: python make_connect_card.py [--dark] "Customer LastName Order#" [more names...]')
+        print('Usage: python make_connect_card.py [--dark] [--portmap] "Customer LastName Order#" [more names...]')
         sys.exit(1)
     for n in args:
         make_card(n, dark)
+        if portmap:
+            make_card(n, dark, 'portmap')
 
 if __name__ == "__main__":
     main()

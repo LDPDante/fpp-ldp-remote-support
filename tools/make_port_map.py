@@ -6,6 +6,7 @@ Usage:
     python make_port_map.py Z:\\Halloween                      # every controller in the show
     python make_port_map.py Z:\\Halloween --controller F16v4   # just one (repeatable)
     python make_port_map.py Z:\\Halloween --title "Riardos Halloween"
+    python make_port_map.py Z:\\Halloween -c F16v4 --push 100.80.226.33   # also put it on the Pi
 
 Writes <show>-portmap.html in the current folder: one self-contained page (no
 internet needed) listing, per controller, each port -> smart receiver -> props
@@ -14,12 +15,18 @@ exactly where they sit in the wiring. Save it to your phone, or print it
 for the inside of the controller lid. Controllers only remember the first prop
 on a port; xLights knows the whole chain, so this reads xLights.
 
+--push also uploads it to that controller's LDP plugin, so it's on the plugin's
+Port Map page at <name>.local on site (no internet) and over Tailscale.
+
 Reads xlights_networks.xml + xlights_rgbeffects.xml from the show folder.
 No extra packages needed.
 """
-import argparse, html, os, re, sys
+import argparse, html, json, os, re, sys, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
+
+PLUGIN = 'fpp-ldp-remote-support'
+SHARED = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'portmap')
 
 # Known port counts, so empty ports show up too. Others: up to the highest used port.
 PORTS = {'F4V4': 4, 'F16V4': 16, 'F48V4': 48, 'F16V5': 16, 'F32V5': 32, 'F48V5': 48,
@@ -133,76 +140,63 @@ def order(props):
         cur = [q for q in props if q['chain'] == p['model'] and id(q) not in seen] + cur
     return out + [p for p in props if id(p) not in seen]
 
-def esc(s):
-    return html.escape(str(s))
-
-def render(title, show, ctrls, unassigned):
-    secs = []
+def build_data(title, show, ctrls, unassigned):
+    """Plain data for portmap/portmap.js (also what --push sends to the Pi)."""
+    out = []
     for c in ctrls:
         nports = PORTS.get(c['model'].upper().replace('_', '-'), 0)
         used = sorted({p for p, _ in c['ports']})
         nports = max([nports] + used) if used else nports
-        cards = []
+        ports = []
         for port in range(1, nports + 1):
             keys = sorted(k for k in c['ports'] if k[0] == port)
             if not keys:
-                cards.append(f'<div class="port empty"><div class="ph"><b>Port {port}</b><span>empty</span></div></div>')
-                continue
+                ports.append({'port': port, 'remote': '', 'props': []})
             for _, remote in keys:
-                props = c['ports'][(port, remote)]
-                nulls = sum(p['null'] + p['endnull'] for p in props)
-                total = sum(p['pixels'] for p in props) + nulls
-                rows = []
-                def null_row(n, where):
-                    return (f'<li class="null"><span class="n">∅</span><span class="nm">{n} null pixel{"s" if n != 1 else ""}'
-                            f'<small>{where}</small></span><span class="px">{n}</span></li>')
-                for i, p in enumerate(props, 1):
-                    if p['null']:
-                        rows.append(null_row(p['null'], f'before {esc(p["name"])}'))
-                    rows.append(f'<li><span class="n">{i}</span><span class="nm">{esc(p["name"])}'
-                                + (f'<small>{esc(" · ".join(p["notes"]))}</small>' if p['notes'] else '')
-                                + f'</span><span class="px">{p["pixels"]}</span></li>')
-                    if p['endnull']:
-                        rows.append(null_row(p['endnull'], f'after {esc(p["name"])}'))
-                rlabel = f' <em>Receiver {remote}</em>' if remote else ''
-                ntxt = f' ({nulls} null)' if nulls else ''
-                cards.append(f'<div class="port"><div class="ph"><b>Port {port}</b>{rlabel}'
-                             f'<span>{len(props)} prop{"s" if len(props) != 1 else ""} · {total} px{ntxt}</span></div>'
-                             f'<ol>{"".join(rows)}</ol></div>')
-        dmx = ''
-        if c['dmx']:
-            items = ''.join(f'<li><span class="nm">{esc(d["name"])}</span><span class="px">DMX {esc(d["ch"])}'
-                            f'{"–" + str(int(d["ch"]) + d["width"] - 1) if str(d["ch"]).isdigit() and d["width"] > 1 else ""}</span></li>'
-                            for d in sorted(c['dmx'], key=lambda d: int(d['ch']) if str(d['ch']).isdigit() else 0))
-            dmx = f'<div class="port dmx"><div class="ph"><b>DMX</b><span>{len(c["dmx"])} fixtures</span></div><ul>{items}</ul></div>'
-        sub = ' · '.join(x for x in (f"{c['vendor']} {c['model']}".strip(), c['ip'], f"{c['pixels']} px") if x)
-        secs.append(f'<section><h2>{esc(c["name"])}</h2><p class="sub">{esc(sub)}</p>'
-                    f'<div class="grid">{"".join(cards)}{dmx}</div></section>')
-    un = (f'<p class="warn">Not assigned to a controller: {esc(", ".join(unassigned))}</p>' if unassigned else '')
-    stamp = datetime.now().strftime('%Y-%m-%d %H:%M')
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+                ports.append({'port': port, 'remote': remote, 'props': [
+                    {k: p[k] for k in ('name', 'pixels', 'null', 'endnull', 'notes')}
+                    for p in c['ports'][(port, remote)]]})
+        dmx = sorted(c['dmx'], key=lambda d: int(d['ch']) if str(d['ch']).isdigit() else 0)
+        out.append({'name': c['name'], 'vendor': c['vendor'], 'model': c['model'], 'ip': c['ip'],
+                    'pixels': c['pixels'], 'ports': ports,
+                    'dmx': [{'name': d['name'], 'ch': d['ch'], 'width': d['width']} for d in dmx]})
+    return {'version': 1, 'title': title, 'show': show,
+            'generated': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'controllers': out, 'unassigned': unassigned}
+
+def standalone(data):
+    """Self-contained page: shared CSS + renderer + the data, nothing to download."""
+    css = open(os.path.join(SHARED, 'portmap.css'), encoding='utf-8').read()
+    js = open(os.path.join(SHARED, 'portmap.js'), encoding='utf-8').read()
+    blob = json.dumps(data).replace('<', '\u003c')
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{esc(title)} Port Map</title>
-<style>
-:root{{--bg:#fff;--card:#f6f5f2;--ink:#1a1a1c;--sub:#5f5d58;--line:#dcd9d2;--acc:#b8860b;--empty:#a9a69f}}
-@media (prefers-color-scheme:dark){{:root:not([data-theme="light"]){{--bg:#111214;--card:#1c1d20;--ink:#ecebe6;--sub:#a5a39c;--line:#2e2f33;--acc:#e8b84b;--empty:#5d5c58}}}}
-*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font:15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px}}
-h1{{font-size:22px;margin:0 0 2px}}h2{{font-size:18px;margin:22px 0 0}}.sub,.meta{{color:var(--sub);margin:2px 0 10px;font-size:13px}}
-.grid{{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}}
-.port{{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;break-inside:avoid}}
-.ph{{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}}.ph b{{font-size:17px;color:var(--acc)}}.ph em{{font-style:normal;font-weight:600}}
-.ph span{{margin-left:auto;color:var(--sub);font-size:13px}}
-.empty{{padding:6px 12px;opacity:.75}}.empty b{{color:var(--empty);font-size:15px}}
-ol,ul{{list-style:none;margin:6px 0 0;padding:0}}li{{display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--line)}}
-.n{{min-width:20px;height:20px;border-radius:50%;background:var(--acc);color:#141416;font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}}
-.nm{{flex:1;min-width:0;overflow-wrap:anywhere}}.nm small{{display:block;color:var(--sub)}}.px{{color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}}
-li.null{{color:var(--sub)}}li.null .n{{background:none;color:var(--acc);border:1.5px dashed var(--acc);font-size:11px}}li.null .nm{{font-weight:600;color:var(--ink)}}
-.warn{{color:#b3261e;font-size:13px}}
-@media print{{body{{padding:0;font-size:12px}}.grid{{grid-template-columns:repeat(3,1fr);gap:6px}}.port{{padding:6px 8px}}h2{{break-before:page}}section:first-of-type h2{{break-before:auto}}}}
-</style></head><body>
-<h1>{esc(title)}</h1><p class="meta">Port map from xLights show <b>{esc(show)}</b> · generated {stamp} · props listed in wiring order (1 = closest to the controller); ∅ = null pixels, wire them in exactly where shown</p>
-{un}{"".join(secs)}
-</body></html>'''
+<title>{html.escape(data['title'])} Port Map</title>
+<style>{css}
+body{{margin:0;padding:16px;background:var(--pm-bg)}}
+@media (prefers-color-scheme:dark){{body{{background:#111214}}}}</style></head>
+<body class="ldp-pm pm-auto"><div id="pm"></div>
+<script>{js}</script>
+<script>LDPPortMap.render({blob}, document.getElementById('pm'));</script>
+</body></html>"""
+
+def push(data, host):
+    """Upload the map to a controller's LDP plugin (same per-unit token as Connect)."""
+    base = host if host.startswith('http') else f'http://{host}'
+    url = f"{base.rstrip('/')}/plugin.php?plugin={PLUGIN}&page=portmap.php&nopage=1"
+    page = urllib.request.urlopen(url, timeout=15).read().decode('utf-8', 'replace')
+    tok = re.search(r'data-ldp-token="([0-9a-f]{32,})"', page)
+    if not tok:
+        sys.exit(f'  push failed: {base} has no Port Map page yet (update the LDP plugin there first)')
+    body = urllib.parse.urlencode({'ldp_action': 'portmap_upload', 'ldp_token': tok.group(1),
+                                   'portmap': json.dumps(data)}).encode()
+    resp = urllib.request.urlopen(urllib.request.Request(url + '&format=json', data=body), timeout=30)
+    txt = resp.read().decode('utf-8', 'replace')
+    mt = re.search(r'\{"ok".*\}', txt, re.S)
+    res = json.loads(mt.group(0)) if mt else {'error': 'unexpected reply from the controller'}
+    if not res.get('ok'):
+        sys.exit(f"  push failed: {res.get('error', 'unknown error')}")
+    print(f"  pushed to {base}  ->  {base}/plugin.php?plugin={PLUGIN}&page=portmap.php&nopage=1")
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -210,6 +204,7 @@ def main():
     ap.add_argument('--controller', '-c', action='append', help='only this controller (name as in xLights)')
     ap.add_argument('--title', help='page title (default: show folder name)')
     ap.add_argument('--out', help='output file (default: <show>-portmap.html)')
+    ap.add_argument('--push', metavar='HOST', help="also upload to this controller's LDP Port Map page (IP, name.local or 100.x)")
     args = ap.parse_args()
     show = os.path.abspath(args.show)
     if not os.path.exists(os.path.join(show, 'xlights_rgbeffects.xml')):
@@ -223,13 +218,15 @@ def main():
     else:
         picked = [c for c in ctrls.values() if c['ports'] or c['dmx']]
     base = os.path.basename(show.rstrip('\\/')) or 'show'
-    title = args.title or base
+    data = build_data(args.title or base, show, picked, [] if args.controller else unassigned)
     out = args.out or re.sub(r'[^a-z0-9]+', '-', base.lower()).strip('-') + '-portmap.html'
     with open(out, 'w', encoding='utf-8') as f:
-        f.write(render(title, show, picked, unassigned if not args.controller else []))
+        f.write(standalone(data))
     for c in picked:
         print(f"  {c['name']}: {len(c['ports'])} port groups, {c['pixels']} px, {len(c['dmx'])} DMX")
     print(f'  wrote {out}')
+    if args.push:
+        push(data, args.push)
 
 if __name__ == '__main__':
     main()

@@ -45,6 +45,8 @@ xLights knows the whole chain. From the show folder:
 ```
 python tools/make_port_map.py Z:\Halloween --title "Riardos Halloween"
 python tools/make_port_map.py Z:\Halloween --controller F16v4   # one controller
+python tools/make_port_map.py Z:\Halloween -c F16v4 --title "Riardos Halloween" --push 100.80.226.33
+python tools/make_connect_card.py --portmap "LDP101"            # + QR card for the lid
 ```
 
 Writes `<show>-portmap.html`: per port (and smart receiver), the props in wiring
@@ -52,6 +54,14 @@ order with pixel counts, **start/end null pixels as their own lines** where they
 sit, color order / brightness / reversed notes, empty ports, DMX fixtures, and
 models not assigned to any controller. Self-contained, works offline — AirDrop or
 email it to your phone, or print it for the controller lid.
+
+**On the controller:** `--push <IP | name.local | 100.x>` uploads it to the
+plugin's **Status/Control → Port Map** page (or use that page's *Upload map*
+button with the `.html`). Phone view: `http://<name>.local/plugin.php?plugin=fpp-ldp-remote-support&page=portmap.php&nopage=1`
+— that's what the `--portmap` card's QR opens. Stored as
+`/home/fpp/media/config/ldp-portmap.json`, so plugin updates keep it. Re-push
+after any xLights wiring change. "No Port Map page yet" from `--push` = update the
+plugin on that unit first.
 
 ---
 

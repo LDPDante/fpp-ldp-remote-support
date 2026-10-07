@@ -123,3 +123,19 @@ customer has several controllers, tell them to use the IP from their router inst
 
 **No account/app for the customer:** the auth key lives on the device, so connecting needs
 no Tailscale login, no software install — just the click.
+
+## Port Map (which prop goes on which port)
+
+Controllers only remember the first prop on a port. The plugin adds a **Port Map**
+page (Status/Control → Port Map) showing every port's full chain — props in wiring
+order, pixel counts, and start/end null pixels — read from the xLights show at the
+bench and pushed to the unit:
+
+```
+python tools/make_port_map.py <show folder> -c <controller> --push <unit IP or 100.x>
+python tools/make_connect_card.py --portmap "<unit name>"   # QR card that opens it on a phone
+```
+
+It works on site with no internet (`<name>.local`) and remotely over Tailscale. The
+map is stored in FPP's config dir, so plugin updates keep it. Uploading needs the
+same per-unit token as the Connect button.
