@@ -214,6 +214,13 @@ the internet drops; remote support comes and goes with the WiFi.
   `cd /home/fpp/media/plugins/fpp-ldp-remote-support && git checkout -- scripts/ldp_clock.sh && git pull`
   If git says `.git/FETCH_HEAD: Permission denied`, first
   `sudo chown fpp:fpp .git/FETCH_HEAD`.
+- **Updating the plugin on a unit with no internet** (e.g. on the bench with its
+  WiFi set for the customer site): bundle the new commits on the bench PC, copy
+  the file over, and fast-forward —
+  `git bundle create ldp.bundle <unit's commit>..main` → copy to `/tmp` on the unit →
+  `git fetch /tmp/ldp.bundle main && git merge --ff-only FETCH_HEAD` in the plugin
+  dir (as `fpp`). Same result as a normal update; it pulls from GitHub next time
+  it's online.
 - **"Raspberry Pi Voltage Too Low"** (FPP warning 15): check `vcgencmd get_throttled`
   — `0x0` is clean; `0x50005` = under-voltage and throttling *right now*. Fix the
   supply (Pi 3B+: 5.1V/2.5A, short thick cable), then Restart FPPD to clear it.
