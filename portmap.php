@@ -83,7 +83,7 @@ body{margin:0;padding:16px;background:var(--pm-bg)}
 <div id="ldpPortMapWrap" class="ldp-pm" data-ldp-token="<?= $h($csrf) ?>">
   <div class="pm-bar">
     <a class="buttons btn-outline-success" href="<?= $h($base . '&nopage=1') ?>" target="_blank">Open full screen (phone)</a>
-    <label class="buttons btn-outline-light" style="cursor:pointer">Upload map&hellip;
+    <label class="buttons btn-outline-primary" style="cursor:pointer;margin:0">Upload map&hellip;
       <input type="file" id="pmFile" accept=".html,.htm,.json" style="display:none"></label>
     <?php if ($map) { ?>
     <form method="post" action="<?= $h($base) ?>" style="display:inline" onsubmit="return confirm('Remove the port map from this controller?')">
