@@ -1,0 +1,15 @@
+{
+  "_help": "Key = the device's Tailscale name. All fields optional. address = street address or town (pinned via OpenStreetMap); or set lat/lng directly. links = extra buttons in the popup.",
+  "ldp101": {
+    "label": "LDP101 - Riardos",
+    "customer": "Riardos",
+    "role": "Halloween show: Pi 3B+ FPP -> Falcon F16V4",
+    "address": "123 Main St, Pittsburgh, PA",
+    "links": { "Falcon F16": "http://100.80.226.33/proxy/192.168.0.106/" }
+  },
+  "some-pc": {
+    "role": "Office PC",
+    "lat": 40.44,
+    "lng": -79.99
+  }
+}

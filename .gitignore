@@ -14,3 +14,8 @@ tailscale.txt
 # generated port maps (output of tools/make_port_map.py; customer data)
 *-portmap*.html
 __pycache__/
+
+# fleet map: per-unit locations/customers and lookup cache (customer data)
+fleetmap/units.json
+fleetmap/cache.json
+fleetmap/cache.json.tmp
