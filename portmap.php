@@ -53,11 +53,29 @@ if ($action !== '') {
     }
 }
 
-$map = null;
+$saved = null;
 if (is_file($mapFile)) {
-    $map = json_decode((string)@file_get_contents($mapFile), true);
-    if (!ldp_pm_valid($map)) { $map = null; }
+    $saved = json_decode((string)@file_get_contents($mapFile), true);
+    if (!ldp_pm_valid($saved)) { $saved = null; }
 }
+// Live view (default): read the controllers now. Saved view: the map made from the xLights show.
+$view = (($_GET['view'] ?? '') === 'saved' && $saved) ? 'saved' : 'live';
+$live = null;
+if ($view === 'live') {
+    require_once __DIR__ . '/portmap_live.php';
+    $ctx = function ($extra = array()) { return stream_context_create(array('http' => array_merge(array('timeout' => 4, 'ignore_errors' => false), $extra))); };
+    $get  = function ($u) use ($ctx) { return @file_get_contents($u, false, $ctx()); };
+    $post = function ($u, $j) use ($ctx) { return @file_get_contents($u, false, $ctx(array('method' => 'POST', 'header' => "Content-Type: application/json
+", 'content' => $j))); };
+    $live = ldp_pm_live('http://127.0.0.1/api', $get, $post, (string)($saved['title'] ?? ''));
+    if (!$live['controllers']) { $live = null; if ($saved) $view = 'saved'; }
+}
+if ($asJson && $action === '') {                     // GET ...&format=json[&view=saved]: the map as data
+    header('Content-Type: application/json');
+    echo json_encode($view === 'live' ? $live : $saved);
+    exit;
+}
+$map = $view === 'live' ? $live : $saved;
 $css = (string)@file_get_contents(__DIR__ . '/portmap/portmap.css');
 $js  = (string)@file_get_contents(__DIR__ . '/portmap/portmap.js');
 $blob = json_encode($map, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -82,10 +100,12 @@ body{margin:0;padding:16px;background:var(--pm-bg)}
 #ldpPortMapWrap .pm-err{color:#b3261e;font-weight:600}</style>
 <div id="ldpPortMapWrap" class="ldp-pm" data-ldp-token="<?= $h($csrf) ?>">
   <div class="pm-bar">
-    <a class="buttons btn-outline-success" href="<?= $h($base . '&nopage=1') ?>" target="_blank">Open full screen (phone)</a>
+    <a class="buttons <?= $view === 'live' ? 'btn-success' : 'btn-outline-success' ?>" href="<?= $h($base) ?>">Live (from the controllers)</a>
+    <?php if ($saved) { ?><a class="buttons <?= $view === 'saved' ? 'btn-success' : 'btn-outline-success' ?>" href="<?= $h($base . '&view=saved') ?>">Saved map (from xLights)</a><?php } ?>
+    <a class="buttons btn-outline-success" href="<?= $h($base . '&nopage=1' . ($view === 'saved' ? '&view=saved' : '')) ?>" target="_blank">Open full screen (phone)</a>
     <label class="buttons btn-outline-primary" style="cursor:pointer;margin:0">Upload map&hellip;
       <input type="file" id="pmFile" accept=".html,.htm,.json" style="display:none"></label>
-    <?php if ($map) { ?>
+    <?php if ($saved && $view === 'saved') { ?>
     <form method="post" action="<?= $h($base) ?>" style="display:inline" onsubmit="return confirm('Remove the port map from this controller?')">
       <input type="hidden" name="ldp_action" value="portmap_clear">
       <input type="hidden" name="ldp_token" value="<?= $h($csrf) ?>">
@@ -98,6 +118,9 @@ body{margin:0;padding:16px;background:var(--pm-bg)}
     <input type="hidden" name="ldp_token" value="<?= $h($csrf) ?>">
     <input type="hidden" name="portmap" id="pmData"></form>
   <div class="pm-box">
+<?php } ?>
+<?php if ($full && $saved) { ?>
+<p class="pm-meta"><a href="<?= $h($base . '&nopage=1' . ($view === 'live' ? '&view=saved' : '')) ?>"><?= $view === 'live' ? 'Show the saved map (from xLights)' : 'Show live (from the controllers)' ?></a></p>
 <?php } ?>
 <div id="ldpPortMap"></div>
 <?php if (!$map) { ?>

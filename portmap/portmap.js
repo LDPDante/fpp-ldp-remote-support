@@ -32,12 +32,14 @@ window.LDPPortMap = (function () {
     var nulls = 0, total = 0;
     p.props.forEach(function (x) { nulls += (x.null || 0) + (x.endnull || 0); total += x.pixels || 0; });
     total += nulls;
+    if (p.total) total = p.total;                       // live view: the controller's own count
     var card = el('div', 'pm-port');
     var ph = el('div', 'pm-ph');
     ph.appendChild(el('b', null, 'Port ' + p.port));
     if (p.remote) { ph.appendChild(document.createTextNode(' ')); ph.appendChild(el('em', null, 'Receiver ' + p.remote)); }
     ph.appendChild(el('span', null, plural(p.props.length, 'prop') + ' · ' + total + ' px' + (nulls ? ' (' + nulls + ' null)' : '')));
     card.appendChild(ph);
+    if (p.warn) { card.classList.add('pm-stale'); card.appendChild(el('p', 'pm-warn', '⚠ ' + p.warn)); }
     var ol = el('ol');
     p.props.forEach(function (x, i) {
       if (x.null) ol.appendChild(nullRow(x.null, 'before ' + x.name));
@@ -76,7 +78,9 @@ window.LDPPortMap = (function () {
     root.textContent = '';
     root.classList.add('ldp-pm');
     root.appendChild(el('h1', null, data.title || 'Port Map'));
-    root.appendChild(el('p', 'pm-meta', 'From xLights show ' + (data.show || '?') + ' · generated ' + (data.generated || '?') +
+    root.appendChild(el('p', 'pm-meta', (data.live
+      ? 'Live from the controllers · checked ' + (data.generated || '?') + ' (reload to check again)'
+      : 'From xLights show ' + (data.show || '?') + ' · generated ' + (data.generated || '?')) +
       ' · props in wiring order (1 = closest to the controller); ∅ = null pixels, wire them in exactly where shown'));
     if (data.unassigned && data.unassigned.length)
       root.appendChild(el('p', 'pm-warn', 'Not assigned to a controller: ' + data.unassigned.join(', ')));
@@ -84,6 +88,7 @@ window.LDPPortMap = (function () {
       var sec = el('section');
       sec.appendChild(el('h2', null, c.name));
       sec.appendChild(el('p', 'pm-sub', [((c.vendor || '') + ' ' + (c.model || '')).trim(), c.ip, (c.pixels || 0) + ' px'].filter(Boolean).join(' · ')));
+      if (c.error) sec.appendChild(el('p', 'pm-warn', "Couldn't read this controller: " + c.error + '.'));
       var grid = el('div', 'pm-grid');
       (c.ports || []).forEach(function (p) { grid.appendChild(portCard(p)); });
       if (c.dmx && c.dmx.length) grid.appendChild(dmxCard(c.dmx));

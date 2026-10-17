@@ -21,3 +21,4 @@
 .ldp-pm .pm-warn{color:var(--pm-warn);font-size:13px}
 @media print{.ldp-pm{font-size:12px}.ldp-pm .pm-grid{grid-template-columns:repeat(3,1fr);gap:6px}.ldp-pm .pm-port{padding:6px 8px}
   .ldp-pm section+section h2{break-before:page}}
+.ldp-pm .pm-port.pm-stale{border-color:var(--pm-warn)}.ldp-pm .pm-port .pm-warn{margin:6px 0 0}

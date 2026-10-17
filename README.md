@@ -139,3 +139,12 @@ python tools/make_connect_card.py --portmap "<unit name>"   # QR card that opens
 It works on site with no internet (`<name>.local`) and remotely over Tailscale. The
 map is stored in FPP's config dir, so plugin updates keep it. Uploading needs the
 same per-unit token as the Connect button.
+
+**Live view (the default):** the page reads the port setup straight from the
+controllers this FPP sends to (Falcon V4/V5 and FPP-based boards like Kulp) and from
+this unit's own pixel ports, every time it opens. A port change uploaded from xLights
+shows up with no extra step. Controllers store only the first prop's name on a port,
+so the rest of each chain comes from the models FPP holds, which xLights sends when
+**models are included in the FPP Connect upload**. If the controller and the models
+disagree, the port is outlined in red and says so. Read-only: it only queries the
+controllers. **Saved map (from xLights)** shows the pushed map instead.

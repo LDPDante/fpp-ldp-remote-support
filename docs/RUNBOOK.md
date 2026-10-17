@@ -63,6 +63,16 @@ button with the `.html`). Phone view: `http://<name>.local/plugin.php?plugin=fpp
 after any xLights wiring change. "No Port Map page yet" from `--push` = update the
 plugin on that unit first.
 
+**Live view** (default tab on the Port Map page, plugin 2026-10-17+): reads each
+controller in FPP's output list (*active* outputs only) plus the unit's own pixel
+ports on every page load, so a port change uploaded from xLights on site appears
+by itself. Names beyond the first prop on each port come from FPP's models: in
+xLights **FPP Connect**, include models in the upload, or ports show a red
+"names look older than the controller's setup" note (the pixel totals are still the
+controller's real ones). JSON: `...&page=portmap.php&format=json` (live) or
+`&view=saved`. Controllers on another subnet (e.g. Riardos' K8/K32 at
+192.168.68.x) show "not reachable" unless their output is active and routable.
+
 ---
 
 ## KNOWN ISSUE — show doesn't start offline (stale clock, FPP 10)
