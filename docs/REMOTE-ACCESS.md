@@ -38,7 +38,7 @@ the [README](../README.md) has provisioning. State below is as of **2026-10-17**
 | Python | 3.14 on PATH (repo tools are stdlib-only, except `make_connect_card.py`: `qrcode`, `pillow`) |
 | PHP | `C:\Users\PC3\tools\php83\php.exe` (lint/test plugin pages locally) |
 | Screenshots | headless Edge: `msedge.exe --headless=new --screenshot=… <url>` (min window width ~500 px — wrap pages in a fixed-width `<iframe>` to check phone layout) |
-| xLights shows | NAS `Z:\` = `\\nas\L Designs Plus`. Riardos: `Z:\Halloween`. Chilutti: `Z:\Chilutti-1285\Chiliutti26` |
+| xLights shows | NAS `Z:\` = `\\nas\L Designs Plus`. Riardos: **`E:\RiardosXlights`** (local drive; `Z:\Halloween` is gone). Chilutti: `Z:\Chilutti-1285\Chiliutti26` |
 
 Standard SSH call (multi-line scripts: here-string; avoid `rm` of `/tmp/...` paths in
 the command text — a local safety check misreads them as local deletions):
@@ -96,7 +96,7 @@ Read `throttled`: `0x0` clean · `0x50000` under-voltage happened earlier (check
 
 | Unit | Tailscale | What / where | Notes |
 |---|---|---|---|
-| **ldp101** | 100.80.226.33 | LDP-owned (not for sale). Riardos Halloween show. Pi 3B+, FPP 10.2, host `LDP101` | eth0 **static 192.168.0.201, no gateway** → Falcon **F16V4 192.168.0.106** (static, fw Bld 38, proxied). Internet only via WiFi **"Riardos"** (don't change). Auto-connect on (`/etc/ldp/default_enabled=True`). TZ America/New_York. Schedule: *Riardos Halloween*, every day 00:00–24:00, repeat. Brief under-voltage dips in the first minute after boot only (LRS-350 + buck; suggest buck 5.15–5.2 V at the Pi / heavier leads). Port map pushed from `Z:\Halloween -c F16v4`. Plugin at `bd074c0` as of 2026-10-09 — check `git log -1` before assuming it has later commits (e.g. the live Port Map, `614717a`) |
+| **ldp101** | 100.80.226.33 | LDP-owned (not for sale). Riardos Halloween show. Pi 3B+, FPP 10.2, host `LDP101` | eth0 **static 192.168.0.201, no gateway** → Falcon **F16V4 192.168.0.106** (static, fw Bld 38, proxied). Internet only via WiFi **"Riardos"** (don't change). Auto-connect on (`/etc/ldp/default_enabled=True`). TZ America/New_York. Schedule: *Riardos Halloween*, every day 00:00–24:00, repeat. Brief under-voltage dips in the first minute after boot only (LRS-350 + buck; suggest buck 5.15–5.2 V at the Pi / heavier leads). Plugin updated 2026-10-17 to `main` (has the **live Port Map**, `614717a`); its Port Map page reads the F16 directly. Ports 7/8 show a red "names look older" note until models are re-uploaded from xLights FPP Connect. Saved map from `Z:\Halloween` (old). Over the `nyc` relay, **SSH (Posh-SSH) times out** while HTTP works fine — use the HTTP API |
 | **chilutti-1285** | 100.114.172.12 | Customer Chilutti. Pi 3B+ + PiCap v2, FPP 10 master | Offline since ~2026-09-29. No RTC battery → `FPPD_STARTED` preset starts *Chilutti Christmas* at power-up; ldp-clock service installed 2026-09-29 but **never verified on the unit**. TZ America/Chicago. **Pending when it's back:** check `ldp-clock` service + saved time, preset, TZ, last boot's `fppd.log`; then fix the update block once: `git checkout -- scripts/ldp_clock.sh && git pull` (and `sudo chown fpp:fpp .git/FETCH_HEAD` if needed). Customer says he sent a "designer show file" — not found on the PC or NAS as of 2026-10-09 |
 | ldp-pi4-3 | 100.79.59.83 | LDP controller (Pi 4) | Offline since ~2026-09-20; role unknown |
 | ldp-f0c1a59e… | 100.73.4.26 | LDP controller, unnamed | Offline since ~2026-09-13; role unknown |
@@ -116,7 +116,8 @@ internet (it fixes that itself too). The key goes in `/etc/ldp/tailscale.authkey
 (`BackendState: Running`).
 
 **Update the plugin on a unit**
-- Online: FPP Plugin Manager → Update, or as `fpp` in the plugin dir: `git pull`.
+- Online: FPP Plugin Manager → Update; from the bench PC: `curl -X POST http://<100.x>/api/plugin/fpp-ldp-remote-support/upgrade` (same thing, works when SSH won't connect; returns `{"Status":"OK"}`); or as `fpp` in the plugin dir: `git pull`.
+  Check it took: `...&page=portmap.php&nopage=1&format=json` returns JSON (`"live":true`) on the new version, a web page on the old one.
 - **No internet (e.g. on the bench):** from the repo on this PC
   `git bundle create <scratch>\ldp.bundle <unit's commit>..main` → `Set-SCPItem` to
   `/tmp` → on the unit, in the plugin dir: `git fetch -q /tmp/ldp.bundle main && git merge --ff-only -q FETCH_HEAD`.
