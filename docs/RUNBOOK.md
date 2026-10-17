@@ -1,7 +1,8 @@
 # LDP Remote Support — Field Runbook
 
 Operational reference for supporting L Designs Plus Ready-to-Run FPP controllers
-remotely. Companion to the plugin [README](../README.md).
+remotely. Companion to the plugin [README](../README.md). Picking this work up in a
+new session? Start with [REMOTE-ACCESS.md](REMOTE-ACCESS.md).
 
 ---
 
