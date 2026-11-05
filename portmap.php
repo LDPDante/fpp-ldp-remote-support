@@ -65,8 +65,7 @@ if ($view === 'live') {
     require_once __DIR__ . '/portmap_live.php';
     $ctx = function ($extra = array()) { return stream_context_create(array('http' => array_merge(array('timeout' => 4, 'ignore_errors' => false), $extra))); };
     $get  = function ($u) use ($ctx) { return @file_get_contents($u, false, $ctx()); };
-    $post = function ($u, $j) use ($ctx) { return @file_get_contents($u, false, $ctx(array('method' => 'POST', 'header' => "Content-Type: application/json
-", 'content' => $j))); };
+    $post = function ($u, $j) use ($ctx) { return @file_get_contents($u, false, $ctx(array('method' => 'POST', 'header' => "Content-Type: application/json\r\n", 'content' => $j))); };
     $live = ldp_pm_live('http://127.0.0.1/api', $get, $post, (string)($saved['title'] ?? ''));
     if (!$live['controllers']) { $live = null; if ($saved) $view = 'saved'; }
 }
