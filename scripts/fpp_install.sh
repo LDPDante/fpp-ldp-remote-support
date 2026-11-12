@@ -40,6 +40,7 @@ ldp_fix_key_perms
 # --- Keep a sane clock offline without an RTC battery, and apply bench
 #     provisioning (/etc/ldp/timezone, /etc/ldp/playlist) ---
 ldp_install_clock
+ldp_install_route
 ldp_apply_provisioning
 
 # --- Shipped default state (set at flash time; toggle stays user-selectable) ---

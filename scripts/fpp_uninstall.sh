@@ -15,6 +15,8 @@ $TS down   >> "$LOG" 2>&1
 # Remove the clock save/restore service (the saved time in /var/lib/ldp is harmless).
 . "/home/fpp/media/plugins/${PLUGIN_NAME}/scripts/ldp_lib.sh"
 ldp_remove_clock
+# Remove the internet-route check (the pinned route itself goes at the next reboot).
+ldp_remove_route
 
 # We intentionally leave the tailscale package + /etc/ldp in place (they may be
 # reused if the plugin is reinstalled). To fully remove Tailscale as well:

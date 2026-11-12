@@ -1,0 +1,7 @@
+[Unit]
+Description=LDP: keep internet traffic on the interface that reaches the internet
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ldp-route

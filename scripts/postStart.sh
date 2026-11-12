@@ -11,6 +11,9 @@ ldp_fix_key_perms
 # apply any not-yet-applied bench provisioning
 cmp -s "${PLUGIN_DIR}/scripts/ldp_clock.sh" /usr/local/sbin/ldp-clock \
   && [ -f /etc/systemd/system/ldp-clock-save.timer ] || ldp_install_clock
+cmp -s "${PLUGIN_DIR}/scripts/ldp_route.sh" /usr/local/sbin/ldp-route \
+  && cmp -s "${PLUGIN_DIR}/scripts/systemd/ldp-route.timer" /etc/systemd/system/ldp-route.timer \
+  || ldp_install_route
 ldp_apply_provisioning
 # small delay so both DHCP leases (all interfaces) are settled before we pick
 # the internet-capable default route.

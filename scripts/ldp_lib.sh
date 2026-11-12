@@ -111,27 +111,31 @@ ldp_fix_key_perms() {
   chown fpp:fpp "$PLUGIN_LOG" 2>/dev/null
 }
 
-# If there are multiple default routes, prefer the one that actually reaches the
-# internet, and deprioritize any that don't (e.g. a prop network whose router
-# advertises itself as a gateway but has no internet). Both interfaces stay fully
-# up; only the *internet* default route is pinned. No-op on single-homed hosts.
+# If there are multiple default routes, pin the one that actually reaches the
+# internet (e.g. WiFi, when the prop network's router has no internet). Both
+# interfaces stay fully up; only the *internet* default route is pinned. No-op on
+# single-homed hosts. The logic lives in ldp_route.sh, which ldp-route.timer also
+# runs every 2 minutes, because DHCP renewals can drop the pin.
 ldp_prefer_internet_route() {
-  local defs entry gw dev goodgw gooddev n
-  mapfile -t defs < <(ip -4 route show default 2>/dev/null \
-    | awk '{gw="";dev="";for(i=1;i<=NF;i++){if($i=="via")gw=$(i+1);if($i=="dev")dev=$(i+1)} if(gw!=""&&dev!="")print gw" "dev}' \
-    | sort -u)
-  n=${#defs[@]}
-  [ "$n" -le 1 ] && return 0
-  for entry in "${defs[@]}"; do
-    gw="${entry%% *}"; dev="${entry##* }"
-    if ping -c1 -W3 -I "$dev" 1.1.1.1 >/dev/null 2>&1; then goodgw="$gw"; gooddev="$dev"; break; fi
-  done
-  if [ -n "$gooddev" ]; then
-    ip route replace default via "$goodgw" dev "$gooddev" metric 50 2>/dev/null
-    ldp_log "route: prefer internet via $goodgw dev $gooddev ($n default routes present)"
-  else
-    ldp_log "route: $n default routes but none reached the internet"
-  fi
+  bash "$(dirname "${BASH_SOURCE[0]}")/ldp_route.sh"
+}
+
+# Install the route re-check timer. Root-only. Copies the script and units out of
+# the (fpp-writable) plugin dir so root never runs files fpp can edit.
+ldp_install_route() {
+  local plugin_dir; plugin_dir="$(dirname "${BASH_SOURCE[0]}")"
+  install -m 0755 "$plugin_dir/ldp_route.sh" /usr/local/sbin/ldp-route || return 1
+  install -m 0644 "$plugin_dir"/systemd/ldp-route.service "$plugin_dir"/systemd/ldp-route.timer \
+    /etc/systemd/system/ || return 1
+  systemctl daemon-reload
+  systemctl enable --now ldp-route.timer >/dev/null 2>&1
+  ldp_log "route: installed 2-minute internet-route check"
+}
+
+ldp_remove_route() {
+  systemctl disable --now ldp-route.timer >/dev/null 2>&1
+  rm -f /etc/systemd/system/ldp-route.service /etc/systemd/system/ldp-route.timer /usr/local/sbin/ldp-route
+  systemctl daemon-reload
 }
 
 # Get a true clock before TLS downloads. A stale clock with a plausible year (e.g.
