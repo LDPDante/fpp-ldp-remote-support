@@ -113,8 +113,9 @@ Admin devices (not controllers): `desktop-6tim3g6` (this bench PC), `x99screamer
 **Install remote support on a new unit** — README "Provisioning" + "Install". Needs
 internet on the unit. Before running `scripts/fpp_install.sh`, make sure the clock is
 real (it now waits for NTP itself) and the default route goes out the interface with
-internet (it fixes that itself too). The key goes in `/etc/ldp/tailscale.authkey`
-(§6); the plugin deletes it after enrolling. Verify with `tailscale status --json`
+internet (it fixes that itself too). **Put the key in `/etc/ldp/tailscale.authkey` (§6) BEFORE running the installer** —
+without it the installer's last step (`tailscale up`) waits forever for a browser login.
+The plugin deletes the key after enrolling. Verify with `tailscale status --json`
 (`BackendState: Running`).
 
 **Update the plugin on a unit**
